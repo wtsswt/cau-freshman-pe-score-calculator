@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>体育课成绩计算器 · 2026–2027 秋季学期</title>
+<style>
+  :root {
+    --bg: #f5f6f8;
+    --card: #ffffff;
+    --border: #e4e7ec;
+    --text: #1f2430;
+    --muted: #6b7280;
+    --accent: #2f6fed;
+    --accent-soft: #eaf1ff;
+    --ok: #0f766e;
+    --warn: #b45309;
+    --bad: #b91c1c;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg); color: var(--text); padding: 24px 16px 40px; line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; }
+  header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 16px; }
+  header h1 { font-size: 22px; font-weight: 700; letter-spacing: .2px; }
+  header p { color: var(--muted); font-size: 12.5px; margin-top: 4px; max-width: 720px; }
+  .btn {
+    border: 1px solid var(--border); background: #fff; color: var(--muted); border-radius: 8px;
+    padding: 6px 12px; font-size: 12.5px; cursor: pointer;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .layout { display: grid; grid-template-columns: 1fr 340px; gap: 16px; align-items: start; }
+  @media (max-width: 920px) { .layout { grid-template-columns: 1fr; } }
+
+  .gender-pills { display: inline-flex; border: 1px solid var(--border); border-radius: 999px; overflow: hidden; margin-bottom: 14px; background: #fff; }
+  .gender-pills button { border: none; background: transparent; padding: 7px 24px; font-size: 14px; cursor: pointer; color: var(--muted); }
+  .gender-pills button.active { background: var(--accent); color: #fff; }
+
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin-bottom: 14px; }
+  .card h2 { font-size: 15px; font-weight: 700; display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; }
+  .card h2 .full { font-size: 12px; color: var(--muted); font-weight: 400; }
+  .card h2 .part-reset {
+    margin-left: auto; align-self: center; flex-shrink: 0;
+    border: 1px solid var(--border); background: #fff; color: var(--muted);
+    border-radius: 6px; padding: 2px 10px; font-size: 11.5px; font-weight: 400;
+    cursor: pointer; transition: all .15s; line-height: 1.6;
+  }
+  .card h2 .part-reset:hover { border-color: #cbd5e1; color: var(--text); background: #f8fafc; }
+  .card h2 .part-reset.done { border-color: #86efac; color: #15803d; background: #f0fdf4; }
+  .card .desc { font-size: 12px; color: var(--muted); margin: 4px 0 12px; }
+  .card .desc.tight { margin: 10px 0 6px; }
+
+  .row { display: flex; flex-wrap: wrap; gap: 10px 18px; margin-bottom: 10px; align-items: flex-end; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: 12px; color: var(--muted); }
+  .field input, .field select {
+    border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px; font-size: 14px;
+    width: 112px; background: #fff; color: var(--text); font-variant-numeric: tabular-nums;
+  }
+  .field select { width: auto; }
+  .field input:focus, .field select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(47,111,237,.10); }
+  .field.wide input, .field.wide select { width: 190px; }
+  .timebox { display: flex; align-items: center; gap: 4px; }
+  .timebox input { width: 64px; }
+  .timebox span { font-size: 13px; color: var(--muted); }
+  .bmi-hint { font-size: 12px; color: var(--muted); padding: 8px 0 2px; max-width: 300px; }
+  #spTierHint { max-width: 420px; }
+
+  .checks { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 2px; }
+  .checks label { font-size: 13px; display: flex; align-items: center; gap: 5px; cursor: pointer; }
+
+  .choice { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  .choice label { font-size: 13px; border: 1px solid var(--border); border-radius: 8px; padding: 5px 12px; cursor: pointer; background: #fff; }
+  .choice input { display: none; }
+  .choice label.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+
+  .result { position: sticky; top: 16px; }
+  .total-box { text-align: center; padding: 8px 0 12px; border-bottom: 1px dashed var(--border); margin-bottom: 10px; }
+  .total-box .num { font-size: 44px; font-weight: 800; color: var(--accent); line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .total-box .num small { font-size: 16px; color: var(--muted); font-weight: 400; }
+  .total-box .grade { font-size: 13px; margin-top: 2px; }
+  .bar { height: 6px; border-radius: 999px; background: #eef1f5; overflow: hidden; margin: 10px 0 2px; }
+  .bar > i { display: block; height: 100%; width: 0; border-radius: 999px; background: var(--accent); transition: width .25s ease; }
+  .grade-tag { display: inline-block; padding: 1px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+  .g-excellent { background: #e0f2fe; color: #0369a1; }
+  .g-good { background: #ccfbf1; color: #0f766e; }
+  .g-pass { background: #fef3c7; color: #b45309; }
+  .g-fail { background: #f3f4f6; color: #6b7280; }
+  .g-fail-red { background: #fee2e2; color: #b91c1c; }
+
+  .sub-item { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; padding: 5px 0; border-bottom: 1px solid #f1f3f6; }
+  .sub-item .name { color: var(--muted); }
+  .sub-item .val { font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
+  .sub-item.total { border-bottom: none; padding-top: 7px; }
+  .sub-item.total .name { color: var(--text); font-weight: 600; }
+  .sub-item.total .val { color: var(--accent); font-size: 15px; }
+
+  .detail-block { margin-top: 12px; }
+  .detail-block h3 { font-size: 12px; color: var(--muted); font-weight: 600; margin-bottom: 3px; }
+  table.mini { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 3px; }
+  table.mini th, table.mini td { border-bottom: 1px solid #f1f3f6; padding: 3px 4px; text-align: left; }
+  table.mini th { color: var(--muted); font-weight: 500; }
+  table.mini td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  table.mini td.low { color: var(--bad); }
+
+  .warnings { margin-top: 12px; }
+  .warning { background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; font-size: 12.5px; border-radius: 8px; padding: 7px 10px; margin-bottom: 6px; }
+  .warning.info { background: #f8fafc; border-color: var(--border); color: var(--muted); }
+
+  .rules summary { cursor: pointer; font-weight: 700; font-size: 15px; }
+  .rules h3 { font-size: 13px; margin: 16px 0 6px; }
+  .rules p { font-size: 12.5px; margin-bottom: 6px; }
+  .rules .tt { font-size: 12px; color: var(--muted); font-weight: 600; margin: 10px 0 2px; }
+  .rules details { border-top: 1px dashed var(--border); margin-top: 10px; padding-top: 10px; }
+  .rules details summary { font-size: 13px; color: var(--accent); font-weight: 600; }
+
+  footer.foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 22px; font-size: 11px; color: #b9bfc9; }
+
+  @media print {
+    body { background: #fff; padding: 0; }
+    .gender-pills, .part-reset, .rules { display: none; }
+    .result { position: static; }
+  }
+</style>
+</head>
+<body>
+<noscript>
+  <div style="position:fixed;left:0;right:0;top:0;z-index:99999;background:#fef2f2;border-bottom:1px solid #fecaca;color:#b91c1c;font:13px/1.7 -apple-system,'PingFang SC','Microsoft YaHei',sans-serif;padding:10px 16px;text-align:center">
+    当前打开方式没有运行页面脚本（微信等聊天软件的内置浏览器打开本地 .html 文件时会禁用脚本），所以按钮、档位和成绩计算都无法使用。请把文件保存到电脑或手机，用 Chrome / Edge / Safari 打开。
+  </div>
+</noscript>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>体育课成绩计算器</h1>
+      <p>2026—2027 学年度秋季学期 · 身体运动功能课程（依据课程考核评分标准与《国家学生体质健康标准》2014 修订版，大一大二组；填写内容自动保存在本机浏览器）</p>
+    </div>
+  </header>
+
+  <div class="gender-pills" id="genderPills">
+    <button data-g="male" class="active" type="button">男</button>
+    <button data-g="female" type="button">女</button>
+  </div>
+
+  <div class="layout">
+    <div><!-- 输入区 -->
+
+      <div class="card">
+        <h2>① 课程思政评价 <span class="full">满分 15（考勤 10 + 课堂表现 5）</span><button class="part-reset" type="button" data-part="1">重置</button></h2>
+        <p class="desc">旷课一次扣 3 分，病事假一次扣 1 分，迟到一次扣 0.5 分；缺课达三分之一及以上者体育课不及格。</p>
+        <div class="row">
+          <div class="field"><label for="kuang">旷课次数</label><input type="number" id="kuang" min="0" max="60" step="1" placeholder="0"></div>
+          <div class="field"><label for="bing">病事假次数</label><input type="number" id="bing" min="0" max="60" step="1" placeholder="0"></div>
+          <div class="field"><label for="chidao">迟到次数</label><input type="number" id="chidao" min="0" max="60" step="1" placeholder="0"></div>
+        </div>
+        <div class="checks">
+          <label><input type="checkbox" id="queke13"> 缺课达到三分之一及以上</label>
+        </div>
+        <p class="desc tight">课堂表现（每项 A=1 分 / B=0.5 分 / C=0 分）</p>
+        <div class="row" id="biaoxian"></div>
+      </div>
+
+      <div class="card">
+        <h2>② 理论考试 <span class="full">满分 10</span><button class="part-reset" type="button" data-part="2">重置</button></h2>
+        <div class="row">
+          <div class="field"><label for="theory">线上考试成绩（分）</label><input type="number" id="theory" value="10" min="0" max="10" step="0.5"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>③ 身体综合测试（体测） <span class="full">满分 30（标准分 × 30%）</span><button class="part-reset" type="button" data-part="3">重置</button></h2>
+        <p class="desc">单项得分 × 权重求和为标准分（满分 100），引体向上/仰卧起坐与 1000/800 米可获附加分；体测总分不及格（&lt;60）者体育课不及格。</p>
+        <div class="row">
+          <div class="field wide"><label for="tierSel">参考成绩显示</label>
+            <select id="tierSel">
+              <option value="100" selected>满分（100 分线）</option>
+              <option value="90">优秀（90 分线）</option>
+              <option value="80">良好（80 分线）</option>
+              <option value="60">及格（60 分线）</option>
+            </select>
+          </div>
+          <div class="field"><label>&nbsp;</label><button class="btn" id="fillTierBtn" type="button">按此档填入</button></div>
+          <div class="bmi-hint" id="bmiHint"></div>
+        </div>
+        <div class="row">
+          <div class="field"><label for="height">身高（cm）</label><input type="number" id="height" min="120" max="230" step="0.5" placeholder="185"></div>
+          <div class="field"><label for="weight">体重（kg）</label><input type="number" id="weight" min="25" max="200" step="0.1" placeholder="80"></div>
+          <div class="field"><label for="vital">肺活量（mL）</label><input type="number" id="vital" min="500" max="9000" step="10" placeholder="4200"></div>
+        </div>
+        <div class="row">
+          <div class="field"><label for="run50">50 米跑（秒）</label><input type="number" id="run50" min="3" max="30" step="0.1" placeholder="7.2"></div>
+          <div class="field"><label for="sitreach">坐位体前屈（cm）</label><input type="number" id="sitreach" min="-30" max="45" step="0.1" placeholder="10"></div>
+          <div class="field"><label for="jump">立定跳远（cm）</label><input type="number" id="jump" min="50" max="400" step="1" placeholder="250"></div>
+        </div>
+        <div class="row">
+          <div class="field"><label for="pullup" id="pullupLabel">引体向上（个）</label><input type="number" id="pullup" min="0" max="100" step="1" placeholder="10"></div>
+          <div class="field"><label for="enduMin" id="enduLabel">1000 米跑（体测与专项同一次测试）</label>
+            <div class="timebox">
+              <input type="number" id="enduMin" min="0" max="20" step="1" placeholder="3"><span>分</span>
+              <input type="number" id="enduSec" min="0" max="59" step="1" placeholder="40"><span>秒</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>④ 专项素质考核 <span class="full">满分 30（三项各 10）</span><button class="part-reset" type="button" data-part="4">重置</button></h2>
+        <p class="desc">① 1000 米（男）/ 800 米（女）② 原地分腿蹲（左右两侧分别计，每侧满分 5 分）③ 第三项二选一。耐力跑沿用 ③ 中填写的同一次测试时间，但换算表不同（表 2-3 满分线 3'10"，比体测更严）。参考档位按表 2-3 折算，分腿蹲与侧桥只设整数分档（无 4.5 分），故“优秀”与“良好”取值相同。</p>
+
+        <div class="row">
+          <div class="field wide"><label for="spTierSel">参考成绩显示</label>
+            <select id="spTierSel">
+              <option value="10" selected>满分（10 分线）</option>
+              <option value="9">优秀（9 分线）</option>
+              <option value="8">良好（8 分线）</option>
+              <option value="6">及格（6 分线）</option>
+            </select>
+          </div>
+          <div class="field"><label>&nbsp;</label><button class="btn" id="fillSpTierBtn" type="button">按此档填入</button></div>
+          <div class="bmi-hint" id="spTierHint"></div>
+        </div>
+
+        <p class="desc tight">原地分腿蹲（个 / 每侧）</p>
+        <div class="row">
+          <div class="field"><label for="squatL">左侧个数</label><input type="number" id="squatL" min="0" max="100" step="1" placeholder="20"></div>
+          <div class="field"><label for="squatR">右侧个数</label><input type="number" id="squatR" min="0" max="100" step="1" placeholder="20"></div>
+        </div>
+
+        <p class="desc tight">第三项（二选一）</p>
+        <div class="choice" id="thirdChoice"></div>
+        <div id="thirdInput"></div>
+      </div>
+
+      <div class="card">
+        <h2>⑤ 课外体育活动 <span class="full">满分 15（基础 10 + 自选 5）</span><button class="part-reset" type="button" data-part="5">重置</button></h2>
+        <p class="desc">有效跑步：每次男 ≥2 km / 女 ≥1.5 km，配速 3'30"—7'30"/km，每天最多记 1 次、最多 5 km。未完成 40 次者基础分为 0 且体育课不及格。自选分按表 2-1：男 85 km→0.5 分、90→1 分……130→5 分（超 80 起算，不足 85 无加分）；女 65→0.5……110→5。竞赛加分与里程加分取较高者，自选分上限 5 分。</p>
+        <div class="row">
+          <div class="field"><label for="runCount">学期有效跑步次数</label><input type="number" id="runCount" min="0" max="400" step="1" placeholder="40"></div>
+          <div class="field"><label for="mileage">总有效里程（km）</label><input type="number" id="mileage" min="0" max="2000" step="0.1" placeholder="90"></div>
+        </div>
+        <div class="row">
+          <div class="field wide"><label for="contest">参加体育竞赛加分（与里程加分取较高者）</label>
+            <select id="contest">
+              <option value="0">未参加</option>
+              <option value="2">校内体育比赛（2 分）</option>
+              <option value="3">代表学校参加全国/首都高校比赛（3 分）</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 结果区 -->
+    <div class="result">
+      <div class="card">
+        <div class="total-box">
+          <div class="num"><span id="totalScore">0</span><small> / 100</small></div>
+          <div class="bar"><i id="totalBar"></i></div>
+          <div class="grade"><span class="grade-tag g-fail" id="gradeTag">未填写</span></div>
+        </div>
+
+        <div class="sub-item"><span class="name">① 课程思政评价</span><span class="val" id="r1">0 / 15</span></div>
+        <div class="sub-item"><span class="name">② 理论考试</span><span class="val" id="r2">0 / 10</span></div>
+        <div class="sub-item"><span class="name">③ 身体综合测试</span><span class="val" id="r3">0 / 30</span></div>
+        <div class="sub-item"><span class="name">④ 专项素质考核</span><span class="val" id="r4">0 / 30</span></div>
+        <div class="sub-item"><span class="name">⑤ 课外体育活动</span><span class="val" id="r5">0 / 15</span></div>
+        <div class="sub-item total"><span class="name">学期总成绩</span><span class="val" id="rTotal">0 / 100</span></div>
+
+        <div class="detail-block">
+          <h3>体测单项明细（标准分 100 制）</h3>
+          <table class="mini">
+            <thead><tr><th>项目</th><th>权重</th><th style="text-align:right">得分</th></tr></thead>
+            <tbody id="fitDetail"></tbody>
+          </table>
+          <div class="sub-item"><span class="name">标准分合计</span><span class="val" id="fitStd">—</span></div>
+          <div class="sub-item"><span class="name">附加分</span><span class="val" id="fitBonus">—</span></div>
+          <div class="sub-item"><span class="name">体测总分（≤120）</span><span class="val" id="fitTotal">—</span></div>
+          <div class="sub-item"><span class="name">折算体育课（× 30%）</span><span class="val" id="fitCourse">—</span></div>
+        </div>
+
+        <div class="detail-block">
+          <h3>专项三项明细</h3>
+          <table class="mini"><tbody id="spDetail"></tbody></table>
+        </div>
+
+        <div class="detail-block">
+          <h3>课外活动明细</h3>
+          <div class="sub-item"><span class="name">基础活动分（≥40 次）</span><span class="val" id="runBase">—</span></div>
+          <div class="sub-item"><span class="name">自选分（里程 / 竞赛取高）</span><span class="val" id="runExtra">—</span></div>
+        </div>
+
+        <div class="warnings" id="warnings"></div>
+      </div>
+    </div>
+  </div>
+
+  <details class="card rules">
+    <summary>评分细则（依据考核评分标准与《国家学生体质健康标准》2014 修订版整理，大一大二组）</summary>
+
+    <h3>一、成绩构成</h3>
+    <p>体育课学期成绩 = 课程思政评价 15 分（考勤 10 + 课堂表现 5）+ 理论考试 10 分 + 身体综合测试 30 分 + 专项素质测试 30 分（三项各 10 分）+ 课外体育活动 15 分（基础 10 + 自选 5）。旷课一次扣 3 分、病事假一次扣 1 分、迟到一次扣 0.5 分，扣满 10 分者倒扣分；缺课达三分之一及以上者体育课不及格。</p>
+
+    <h3>二、身体综合测试（体测，折算 30 分）</h3>
+    <p>权重：BMI 15%、肺活量 15%、50 米跑 20%、坐位体前屈 10%、立定跳远 10%、引体向上（男）/一分钟仰卧起坐（女）10%、1000 米（男）/800 米（女）20%。标准分 = Σ(单项得分 × 权重)，附加分单独累加，学年总分 = 标准分 + 附加分（满分 120）；≥90 优秀、≥80 良好、≥60 及格、&lt;60 不及格（体育课不及格）。本页按总分（上限 100）× 30% 折算。</p>
+    <p>BMI（kg/m²）：男 正常 17.9~23.9→100，低体重 ≤17.8→80，超重 24.0~27.9→80，肥胖 ≥28.0→60；女 正常 17.2~23.9→100，低体重 ≤17.1→80，超重 24.0~27.9→80，肥胖 ≥28.0→60。</p>
+
+    <details>
+      <summary>体测单项评分表（男 / 女）</summary>
+      <p class="tt">肺活量（mL，≥该成绩得对应分）</p>
+      <table class="mini"><tr><th>得分</th><th>男</th><th>女</th><th>得分</th><th>男</th><th>女</th></tr>
+        <tr><td>100</td><td>5040</td><td>3400</td><td>68</td><td>3580</td><td>2400</td></tr>
+        <tr><td>95</td><td>4920</td><td>3350</td><td>66</td><td>3460</td><td>2300</td></tr>
+        <tr><td>90</td><td>4800</td><td>3300</td><td>64</td><td>3340</td><td>2200</td></tr>
+        <tr><td>85</td><td>4550</td><td>3150</td><td>62</td><td>3220</td><td>2100</td></tr>
+        <tr><td>80</td><td>4300</td><td>3000</td><td>60</td><td>3100</td><td>2000</td></tr>
+        <tr><td>78</td><td>4180</td><td>2900</td><td>50</td><td>2940</td><td>1960</td></tr>
+        <tr><td>76</td><td>4060</td><td>2800</td><td>40</td><td>2780</td><td>1920</td></tr>
+        <tr><td>74</td><td>3940</td><td>2700</td><td>30</td><td>2620</td><td>1880</td></tr>
+        <tr><td>72</td><td>3820</td><td>2600</td><td>20</td><td>2460</td><td>1840</td></tr>
+        <tr><td>70</td><td>3700</td><td>2500</td><td>10</td><td>2300</td><td>1800</td></tr>
+      </table>
+
+      <p class="tt">50 米跑（秒，≤该成绩得对应分）</p>
+      <table class="mini"><tr><th>得分</th><th>男</th><th>女</th><th>得分</th><th>男</th><th>女</th></tr>
+        <tr><td>100</td><td>6.7</td><td>7.5</td><td>68</td><td>8.3</td><td>9.5</td></tr>
+        <tr><td>95</td><td>6.8</td><td>7.6</td><td>66</td><td>8.5</td><td>9.7</td></tr>
+        <tr><td>90</td><td>6.9</td><td>7.7</td><td>64</td><td>8.7</td><td>9.9</td></tr>
+        <tr><td>85</td><td>7.0</td><td>8.0</td><td>62</td><td>8.9</td><td>10.1</td></tr>
+        <tr><td>80</td><td>7.1</td><td>8.3</td><td>60</td><td>9.1</td><td>10.3</td></tr>
+        <tr><td>78</td><td>7.3</td><td>8.5</td><td>50</td><td>9.3</td><td>10.5</td></tr>
+        <tr><td>76</td><td>7.5</td><td>8.7</td><td>40</td><td>9.5</td><td>10.7</td></tr>
+        <tr><td>74</td><td>7.7</td><td>8.9</td><td>30</td><td>9.7</td><td>10.9</td></tr>
+        <tr><td>72</td><td>7.9</td><td>9.1</td><td>20</td><td>9.9</td><td>11.1</td></tr>
+        <tr><td>70</td><td>8.1</td><td>9.3</td><td>10</td><td>10.1</td><td>11.3</td></tr>
+      </table>
+
+      <p class="tt">坐位体前屈（cm，≥该成绩得对应分）</p>
+      <table class="mini"><tr><th>得分</th><th>男</th><th>女</th><th>得分</th><th>男</th><th>女</th></tr>
+        <tr><td>100</td><td>24.9</td><td>25.8</td><td>68</td><td>9.3</td><td>11.2</td></tr>
+        <tr><td>95</td><td>23.1</td><td>24.0</td><td>66</td><td>7.9</td><td>9.9</td></tr>
+        <tr><td>90</td><td>21.3</td><td>22.2</td><td>64</td><td>6.5</td><td>8.6</td></tr>
+        <tr><td>85</td><td>19.5</td><td>20.6</td><td>62</td><td>5.1</td><td>7.3</td></tr>
+        <tr><td>80</td><td>17.7</td><td>19.0</td><td>60</td><td>3.7</td><td>6.0</td></tr>
+        <tr><td>78</td><td>16.3</td><td>17.7</td><td>50</td><td>2.7</td><td>5.2</td></tr>
+        <tr><td>76</td><td>14.9</td><td>16.4</td><td>40</td><td>1.7</td><td>4.4</td></tr>
+        <tr><td>74</td><td>13.5</td><td>15.1</td><td>30</td><td>0.7</td><td>3.6</td></tr>
+        <tr><td>72</td><td>12.1</td><td>13.8</td><td>20</td><td>-0.3</td><td>2.8</td></tr>
+        <tr><td>70</td><td>10.7</td><td>12.5</td><td>10</td><td>-1.3</td><td>2.0</td></tr>
+      </table>
+
+      <p class="tt">立定跳远（cm，≥该成绩得对应分）</p>
+      <table class="mini"><tr><th>得分</th><th>男</th><th>女</th><th>得分</th><th>男</th><th>女</th></tr>
+        <tr><td>100</td><td>273</td><td>207</td><td>68</td><td>224</td><td>163</td></tr>
+        <tr><td>95</td><td>268</td><td>201</td><td>66</td><td>220</td><td>160</td></tr>
+        <tr><td>90</td><td>263</td><td>195</td><td>64</td><td>216</td><td>157</td></tr>
+        <tr><td>85</td><td>256</td><td>188</td><td>62</td><td>212</td><td>154</td></tr>
+        <tr><td>80</td><td>248</td><td>181</td><td>60</td><td>208</td><td>151</td></tr>
+        <tr><td>78</td><td>244</td><td>178</td><td>50</td><td>203</td><td>146</td></tr>
+        <tr><td>76</td><td>240</td><td>175</td><td>40</td><td>198</td><td>141</td></tr>
+        <tr><td>74</td><td>236</td><td>172</td><td>30</td><td>193</td><td>136</td></tr>
+        <tr><td>72</td><td>232</td><td>169</td><td>20</td><td>188</td><td>131</td></tr>
+        <tr><td>70</td><td>228</td><td>166</td><td>10</td><td>183</td><td>126</td></tr>
+      </table>
+
+      <p class="tt">引体向上（男）/ 一分钟仰卧起坐（女）（次，≥该成绩得对应分）</p>
+      <table class="mini"><tr><th>得分</th><th>男引体</th><th>女仰卧</th><th>得分</th><th>男引体</th><th>女仰卧</th></tr>
+        <tr><td>100</td><td>19</td><td>56</td><td>64</td><td>11</td><td>30</td></tr>
+        <tr><td>95</td><td>18</td><td>54</td><td>60</td><td>10</td><td>26</td></tr>
+        <tr><td>90</td><td>17</td><td>52</td><td>50</td><td>9</td><td>24</td></tr>
+        <tr><td>85</td><td>16</td><td>49</td><td>40</td><td>8</td><td>22</td></tr>
+        <tr><td>80</td><td>15</td><td>46</td><td>30</td><td>7</td><td>20</td></tr>
+        <tr><td>76</td><td>14</td><td>42</td><td>20</td><td>6</td><td>18</td></tr>
+        <tr><td>72</td><td>13</td><td>38</td><td>10</td><td>5</td><td>16</td></tr>
+        <tr><td>68</td><td>12</td><td>34</td><td>—</td><td>—</td><td>—</td></tr>
+      </table>
+
+      <p class="tt">1000 米（男）/ 800 米（女）（分'秒"，≤该成绩得对应分）</p>
+      <table class="mini"><tr><th>得分</th><th>男 1000米</th><th>女 800米</th><th>得分</th><th>男 1000米</th><th>女 800米</th></tr>
+        <tr><td>100</td><td>3'17"</td><td>3'18"</td><td>68</td><td>4'12"</td><td>4'14"</td></tr>
+        <tr><td>95</td><td>3'22"</td><td>3'24"</td><td>66</td><td>4'17"</td><td>4'19"</td></tr>
+        <tr><td>90</td><td>3'27"</td><td>3'30"</td><td>64</td><td>4'22"</td><td>4'24"</td></tr>
+        <tr><td>85</td><td>3'34"</td><td>3'37"</td><td>62</td><td>4'27"</td><td>4'29"</td></tr>
+        <tr><td>80</td><td>3'42"</td><td>3'44"</td><td>60</td><td>4'32"</td><td>4'34"</td></tr>
+        <tr><td>78</td><td>3'47"</td><td>3'49"</td><td>50</td><td>4'52"</td><td>4'44"</td></tr>
+        <tr><td>76</td><td>3'52"</td><td>3'54"</td><td>40</td><td>5'12"</td><td>4'54"</td></tr>
+        <tr><td>74</td><td>3'57"</td><td>3'59"</td><td>30</td><td>5'32"</td><td>5'04"</td></tr>
+        <tr><td>72</td><td>4'02"</td><td>4'04"</td><td>20</td><td>5'52"</td><td>5'14"</td></tr>
+        <tr><td>70</td><td>4'07"</td><td>4'09"</td><td>10</td><td>6'12"</td><td>5'24"</td></tr>
+      </table>
+
+      <p class="tt">附加分（各最多 +10）</p>
+      <p>引体向上（男）：超过 19 个后每多 1 个加 1 分；一分钟仰卧起坐（女）：超过 56 次后每多 1 次加 1 分。1000 米（男）：比 3'17" 每快 4" 加 1 分（快 20" 加 5、23" 加 6、26" 加 7、29" 加 8、32" 加 9、35" 加 10）；800 米（女）：比 3'18" 每快 5" 加 1 分，最多快 50"。</p>
+    </details>
+
+    <h3>三、专项素质考核（表 2-3，三项各 10 分）</h3>
+    <details>
+      <summary>专项评分表（各项达到该线得对应分）</summary>
+      <table class="mini">
+        <tr><th>分值</th><th>1000 / 800 米</th><th>分腿蹲（个/侧）</th><th>斜向引体</th><th>标准俯卧撑</th><th>俯桥</th><th>侧桥（秒/侧）</th></tr>
+        <tr><td>10</td><td>3'10"</td><td>25（5+5）</td><td>20</td><td>20</td><td>70"</td><td>50（5+5）</td></tr>
+        <tr><td>9.5</td><td>3'15"</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td>9</td><td>3'20"</td><td>—</td><td>18</td><td>18</td><td>65"</td><td>—</td></tr>
+        <tr><td>8.5</td><td>3'25"</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td>8</td><td>3'30"</td><td>20（4+4）</td><td>16</td><td>16</td><td>60"</td><td>45（4+4）</td></tr>
+        <tr><td>7.5</td><td>3'35"</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td>7</td><td>3'40"</td><td>—</td><td>14</td><td>14</td><td>55"</td><td>—</td></tr>
+        <tr><td>6.5</td><td>3'45"</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td>6</td><td>3'50"</td><td>15（3+3）</td><td>12</td><td>12</td><td>50"</td><td>40（3+3）</td></tr>
+        <tr><td>5.5</td><td>3'57"</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td>5</td><td>4'04"</td><td>—</td><td>10</td><td>10</td><td>45"</td><td>—</td></tr>
+        <tr><td>4.5</td><td>4'11"</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td>4</td><td>4'18"</td><td>10（2+2）</td><td>8</td><td>8</td><td>40"</td><td>30（2+2）</td></tr>
+        <tr><td>3.5</td><td>4'25"</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td>3</td><td>4'35"</td><td>—</td><td>6</td><td>6</td><td>35"</td><td>—</td></tr>
+        <tr><td>2.5</td><td>4'45"</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td>2</td><td>4'55"</td><td>5（1+1）</td><td>4</td><td>4</td><td>30"</td><td>20（1+1）</td></tr>
+        <tr><td>1.5</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td>1</td><td>5'10"</td><td>—</td><td>2</td><td>2</td><td>20"</td><td>—</td></tr>
+        <tr><td>0</td><td>5'10"以上</td><td>5 个以下</td><td>2 个以下</td><td>2 个以下</td><td>20" 以下</td><td>20" 以下</td></tr>
+      </table>
+      <p>注：原地分腿蹲、侧桥均左右两侧分别考核，各占 5 分（表中括号内为左右侧合计；单侧 25 个 / 50" 即左右各满分 → 合计 10 分）。男子第三项在斜向引体/标准俯卧撑中二选一，女子在俯桥/侧桥中二选一。</p>
+    </details>
+
+    <h3>四、课外体育活动（15 分）</h3>
+    <p>有效跑步：每次男 ≥2 km、女 ≥1.5 km，配速 3'30"—7'30"/km，步频 90-250 步/分；每天最多记 1 次、最多 5 km；跑步时段 6:00-22:00（9月21日起，12月27日止）。学期有效跑步 ≥40 次得基础分 10 分；未满足则基础分 0 分且体育课不及格。</p>
+    <p>自选分（表 2-1，男超 80 km / 女超 60 km 起算，按表足额计，超出封顶不再加）：</p>
+    <table class="mini"><tr><th>加分</th><th>0.5</th><th>1</th><th>1.5</th><th>2</th><th>2.5</th><th>3</th><th>3.5</th><th>4</th><th>4.5</th><th>5</th></tr>
+      <tr><td>男（km）</td><td>85</td><td>90</td><td>95</td><td>100</td><td>105</td><td>110</td><td>115</td><td>120</td><td>125</td><td>130</td></tr>
+      <tr><td>女（km）</td><td>65</td><td>70</td><td>75</td><td>80</td><td>85</td><td>90</td><td>95</td><td>100</td><td>105</td><td>110</td></tr>
+    </table>
+    <p>体育竞赛：参加校内体育比赛（体育教学部/校团委/联合主办）得 2 分；代表学校参加全国或首都高校比赛得 3 分；同一项目按最高层次计分，同一运动会只计最高一个小项。报名未参赛不予统计。</p>
+
+    <h3>五、课堂表现评分（表 2-1，共 5 分）</h3>
+    <p>有团队协作的精神，有集体荣誉感；能拼搏进取，超越自我；能吃苦耐劳；能正确面对成功与失败；能遵守规则，做到诚信自律。每项 A=1 分、B=0.5 分、C=0 分。</p>
+  </details>
+
+  <footer class="foot">
+    <span class="ver">本页仅用于自测估算，最终成绩以学校教务处 / 体育教学部核定为准。</span>
+    <span class="author">swt · 由 AI 生成</span>
+  </footer>
+</div>
+
+<script>
+"use strict";
+
+/* ================= 评分数据（大一大二组，取大一列） ================= */
+// 高优表：[得分, 最低标准]
+const HI = {
+  vital: {
+    male:   [[100,5040],[95,4920],[90,4800],[85,4550],[80,4300],[78,4180],[76,4060],[74,3940],[72,3820],[70,3700],[68,3580],[66,3460],[64,3340],[62,3220],[60,3100],[50,2940],[40,2780],[30,2620],[20,2460],[10,2300]],
+    female: [[100,3400],[95,3350],[90,3300],[85,3150],[80,3000],[78,2900],[76,2800],[74,2700],[72,2600],[70,2500],[68,2400],[66,2300],[64,2200],[62,2100],[60,2000],[50,1960],[40,1920],[30,1880],[20,1840],[10,1800]]
+  },
+  sitreach: {
+    male:   [[100,24.9],[95,23.1],[90,21.3],[85,19.5],[80,17.7],[78,16.3],[76,14.9],[74,13.5],[72,12.1],[70,10.7],[68,9.3],[66,7.9],[64,6.5],[62,5.1],[60,3.7],[50,2.7],[40,1.7],[30,0.7],[20,-0.3],[10,-1.3]],
+    female: [[100,25.8],[95,24.0],[90,22.2],[85,20.6],[80,19.0],[78,17.7],[76,16.4],[74,15.1],[72,13.8],[70,12.5],[68,11.2],[66,9.9],[64,8.6],[62,7.3],[60,6.0],[50,5.2],[40,4.4],[30,3.6],[20,2.8],[10,2.0]]
+  },
+  jump: {
+    male:   [[100,273],[95,268],[90,263],[85,256],[80,248],[78,244],[76,240],[74,236],[72,232],[70,228],[68,224],[66,220],[64,216],[62,212],[60,208],[50,203],[40,198],[30,193],[20,188],[10,183]],
+    female: [[100,207],[95,201],[90,195],[85,188],[80,181],[78,178],[76,175],[74,172],[72,169],[70,166],[68,163],[66,160],[64,157],[62,154],[60,151],[50,146],[40,141],[30,136],[20,131],[10,126]]
+  },
+  pullup: [[100,19],[95,18],[90,17],[85,16],[80,15],[76,14],[72,13],[68,12],[64,11],[60,10],[50,9],[40,8],[30,7],[20,6],[10,5]],
+  situp:  [[100,56],[95,54],[90,52],[85,49],[80,46],[78,44],[76,42],[74,40],[72,38],[70,36],[68,34],[66,32],[64,30],[62,28],[60,26],[50,24],[40,22],[30,20],[20,18],[10,16]]
+};
+// 低优表：[得分, 最高标准（秒）]
+const LO = {
+  run50: {
+    male:   [[100,6.7],[95,6.8],[90,6.9],[85,7.0],[80,7.1],[78,7.3],[76,7.5],[74,7.7],[72,7.9],[70,8.1],[68,8.3],[66,8.5],[64,8.7],[62,8.9],[60,9.1],[50,9.3],[40,9.5],[30,9.7],[20,9.9],[10,10.1]],
+    female: [[100,7.5],[95,7.6],[90,7.7],[85,8.0],[80,8.3],[78,8.5],[76,8.7],[74,8.9],[72,9.1],[70,9.3],[68,9.5],[66,9.7],[64,9.9],[62,10.1],[60,10.3],[50,10.5],[40,10.7],[30,10.9],[20,11.1],[10,11.3]]
+  },
+  endurance: {
+    male:   [[100,197],[95,202],[90,207],[85,214],[80,222],[78,227],[76,232],[74,237],[72,242],[70,247],[68,252],[66,257],[64,262],[62,267],[60,272],[50,292],[40,312],[30,332],[20,352],[10,372]],
+    female: [[100,198],[95,204],[90,210],[85,217],[80,224],[78,229],[76,234],[74,239],[72,244],[70,249],[68,254],[66,259],[64,264],[62,269],[60,274],[50,284],[40,294],[30,304],[20,314],[10,324]]
+  }
+};
+// 耐力跑附加分：比满分线快的秒数门槛 → 1..10 分
+const ENDU_BONUS = { male: [4,8,12,16,20,23,26,29,32,35], female: [5,10,15,20,25,30,35,40,45,50] };
+// BMI 正常区间（大学）
+const BMI = { male: { lo: 17.9, hi: 23.9 }, female: { lo: 17.2, hi: 23.9 } };
+// 专项（表 2-3）
+const SP_ENDU   = [[10,190],[9.5,195],[9,200],[8.5,205],[8,210],[7.5,215],[7,220],[6.5,225],[6,230],[5.5,237],[5,244],[4.5,251],[4,258],[3.5,265],[3,275],[2.5,285],[2,295],[1,310]];
+const SP_SQUAT  = [[5,25],[4,20],[3,15],[2,10],[1,5]];      // 每侧
+const SP_PULLUP = [[10,20],[9,18],[8,16],[7,14],[6,12],[5,10],[4,8],[3,6],[2,4],[1,2]];
+const SP_BRIDGE = [[10,70],[9,65],[8,60],[7,55],[6,50],[5,45],[4,40],[3,35],[2,30],[1,20]];
+const SP_SIDE   = [[5,50],[4,45],[3,40],[2,30],[1,20]];     // 每侧
+// 专项参考档位（表 2-3）：满分 10 / 优秀 9 / 良好 8 / 及格 6；分腿蹲、侧桥表只到整数分，故优秀与良好同值
+const SP_TIER = {
+  "10": { endu: 190, squat: 25, pullup: 20, pushup: 20, bridge: [1, 10], side: 50 },
+  "9":  { endu: 200, squat: 20, pullup: 18, pushup: 18, bridge: [1, 5],  side: 45 },
+  "8":  { endu: 210, squat: 20, pullup: 16, pushup: 16, bridge: [1, 0],  side: 45 },
+  "6":  { endu: 230, squat: 15, pullup: 12, pushup: 12, bridge: [0, 50], side: 40 }
+};
+const SP_THIRD_NAME = { pullup: "斜向引体", pushup: "俯卧撑", bridge: "俯桥", sidebridge: "侧桥" };
+// 里程自选分（表 2-1）：[分数, 里程门槛]
+const MILE_BONUS = {
+  male:   [[5,130],[4.5,125],[4,120],[3.5,115],[3,110],[2.5,105],[2,100],[1.5,95],[1,90],[0.5,85]],
+  female: [[5,110],[4.5,105],[4,100],[3.5,95],[3,90],[2.5,85],[2,80],[1.5,75],[1,70],[0.5,65]]
+};
+// 参考档位（占位提示 & 一键填入）
+const TIERS = {
+  male: {
+    "100": { vital: 5040, run50: 6.7,  sitreach: 24.9, jump: 273, pullup: 19, endu: [3, 17] },
+    "90":  { vital: 4800, run50: 6.9,  sitreach: 21.3, jump: 263, pullup: 17, endu: [3, 27] },
+    "80":  { vital: 4300, run50: 7.1,  sitreach: 17.7, jump: 248, pullup: 15, endu: [3, 42] },
+    "60":  { vital: 3100, run50: 9.1,  sitreach: 3.7,  jump: 208, pullup: 10, endu: [4, 32] }
+  },
+  female: {
+    "100": { vital: 3400, run50: 7.5,  sitreach: 25.8, jump: 207, pullup: 56, endu: [3, 18] },
+    "90":  { vital: 3300, run50: 7.7,  sitreach: 22.2, jump: 195, pullup: 52, endu: [3, 30] },
+    "80":  { vital: 3000, run50: 8.3,  sitreach: 19.0, jump: 181, pullup: 46, endu: [3, 44] },
+    "60":  { vital: 2000, run50: 10.3, sitreach: 6.0,  jump: 151, pullup: 26, endu: [4, 34] }
+  }
+};
+const WEIGHTS = [0.15, 0.15, 0.20, 0.10, 0.10, 0.10, 0.20];
+
+/* ================= 工具 ================= */
+const $ = id => document.getElementById(id);
+function hiScore(table, v) {
+  if (v == null || Number.isNaN(v)) return null;
+  for (const [s, t] of table) if (v >= t) return s;
+  return 0;
+}
+function loScore(table, v) {
+  if (v == null || Number.isNaN(v)) return null;
+  for (const [s, t] of table) if (v <= t) return s;
+  return 0;
+}
+// 空值兜底（不用 ?? ，避免旧版内核语法报错导致整页脚本失效）
+function nn(v, d) { return (v === null || v === undefined) ? d : v; }
+function num(id) {
+  const el = $(id);
+  if (!el || String(el.value).trim() === "") return null;
+  const v = parseFloat(el.value);
+  return Number.isNaN(v) ? null : v;
+}
+const round1 = v => Math.round(v * 10) / 10;
+function fmtTime(sec) {
+  if (sec == null) return "—";
+  const m = Math.floor(sec / 60), s = Math.round(sec % 60);
+  return m + "'" + String(s).padStart(2, "0") + "\"";
+}
+function gradeOf(t) {
+  if (t >= 90) return { text: "优秀", cls: "g-excellent" };
+  if (t >= 80) return { text: "良好", cls: "g-good" };
+  if (t >= 60) return { text: "及格", cls: "g-pass" };
+  return { text: "不及格", cls: "g-fail-red" };
+}
+
+/* ================= 状态 ================= */
+let gender = "male";
+let thirdType = "pullup";
+const SAVE_KEY = "pe-score-calc-v1";
+const BX_ITEMS = ["有团队协作的精神，有集体荣誉感","能拼搏进取，超越自我","能吃苦耐劳","能正确面对成功与失败","能遵守规则，做到诚信自律"];
+
+/* ================= 动态表单 ================= */
+function buildBiaoxian() {
+  $("biaoxian").innerHTML = BX_ITEMS.map((t, i) =>
+    `<div class="field"><label>${t}</label><select data-bx="${i}">
+      <option value="1" selected>A</option><option value="0.5">B</option><option value="0">C</option>
+    </select></div>`).join("");
+}
+function buildThird() {
+  const opts = gender === "male"
+    ? [["pullup","斜向引体向上"],["pushup","标准俯卧撑"]]
+    : [["bridge","俯桥（平板支撑）"],["sidebridge","侧桥（左右两侧）"]];
+  if (!opts.some(o => o[0] === thirdType)) thirdType = opts[0][0];
+  const box = $("thirdChoice");
+  box.innerHTML = opts.map(([v, t]) =>
+    `<label data-v="${v}" class="${v === thirdType ? "on" : ""}"><input type="radio" name="third" value="${v}" ${v === thirdType ? "checked" : ""}>${t}</label>`).join("");
+  box.querySelectorAll("label").forEach(l => l.addEventListener("click", () => {
+    thirdType = l.dataset.v;
+    box.querySelectorAll("label").forEach(x => x.classList.toggle("on", x === l));
+    renderThirdInput(); updatePlaceholders(); calc(); save();
+  }));
+  renderThirdInput();
+}
+function renderThirdInput() {
+  const box = $("thirdInput");
+  if (thirdType === "pullup" || thirdType === "pushup") {
+    const label = thirdType === "pullup" ? "斜向引体向上（个）" : "标准俯卧撑（个）";
+    box.innerHTML = `<div class="row"><div class="field"><label for="thirdNum">${label}</label>
+      <input type="number" id="thirdNum" min="0" max="100" step="1" placeholder="10"></div></div>`;
+  } else if (thirdType === "bridge") {
+    box.innerHTML = `<div class="row"><div class="field"><label>俯桥保持时长</label>
+      <div class="timebox"><input type="number" id="thirdMin" min="0" max="10" step="1" placeholder="1"><span>分</span>
+      <input type="number" id="thirdSec" min="0" max="59" step="1" placeholder="10"><span>秒</span></div></div></div>`;
+  } else {
+    box.innerHTML = `<div class="row">
+      <div class="field"><label for="sideL">左侧保持（秒）</label><input type="number" id="sideL" min="0" max="600" step="1" placeholder="40"></div>
+      <div class="field"><label for="sideR">右侧保持（秒）</label><input type="number" id="sideR" min="0" max="600" step="1" placeholder="40"></div></div>`;
+  }
+}
+function readThird() {
+  if (thirdType === "pullup" || thirdType === "pushup") {
+    const v = num("thirdNum");
+    return { score: hiScore(SP_PULLUP, v), raw: v == null ? "—" : v + " 个" };
+  }
+  if (thirdType === "bridge") {
+    const m = num("thirdMin"), s = num("thirdSec");
+    if (m == null && s == null) return { score: null, raw: "—" };
+    const sec = (m || 0) * 60 + (s || 0);
+    return { score: hiScore(SP_BRIDGE, sec), raw: fmtTime(sec) };
+  }
+  const L = num("sideL"), R = num("sideR");
+  if (L == null && R == null) return { score: null, raw: "—" };
+  const sl = L == null ? 0 : (hiScore(SP_SIDE, L) || 0);
+  const sr = R == null ? 0 : (hiScore(SP_SIDE, R) || 0);
+  return { score: sl + sr, raw: `左 ${nn(L, "—")}" / 右 ${nn(R, "—")}"` };
+}
+
+/* ================= 性别 ================= */
+function setGender(g) {
+  gender = g;
+  document.querySelectorAll("#genderPills button").forEach(b => b.classList.toggle("active", b.dataset.g === g));
+  $("pullupLabel").textContent = g === "male" ? "引体向上（个）" : "一分钟仰卧起坐（次）";
+  $("enduLabel").textContent = (g === "male" ? "1000 米跑" : "800 米跑") + "（体测与专项同一次测试）";
+  buildThird(); updatePlaceholders(); calc(); save();
+}
+document.querySelectorAll("#genderPills button").forEach(b =>
+  b.addEventListener("click", () => setGender(b.dataset.g)));
+
+/* ================= 参考档位 ================= */
+function tierData() {
+  return TIERS[gender][$("tierSel").value];
+}
+function updatePlaceholders() {
+  const t = tierData();
+  const set = (id, v) => { const el = $(id); if (el) el.placeholder = v; };
+  set("vital", t.vital); set("run50", t.run50); set("sitreach", t.sitreach);
+  set("jump", t.jump); set("pullup", t.pullup); set("enduMin", t.endu[0]); set("enduSec", t.endu[1]);
+  $("bmiHint").textContent = gender === "male"
+    ? "BMI 正常 17.9~23.9 → 100；低体重 ≤17.8 / 超重 24.0~27.9 → 80；肥胖 ≥28.0 → 60"
+    : "BMI 正常 17.2~23.9 → 100；低体重 ≤17.1 / 超重 24.0~27.9 → 80；肥胖 ≥28.0 → 60";
+
+  /* ④ 专项参考档位 */
+  const st = spTierData();
+  set("squatL", st.squat); set("squatR", st.squat);
+  if (thirdType === "pullup" || thirdType === "pushup") {
+    set("thirdNum", st[thirdType]);
+  } else if (thirdType === "bridge") {
+    set("thirdMin", st.bridge[0]); set("thirdSec", st.bridge[1]);
+  } else {
+    set("sideL", st.side); set("sideR", st.side);
+  }
+  $("spTierHint").textContent =
+    `耐力跑 ${fmtTime(st.endu)}（与 ③ 共用）｜ 分腿蹲 ${st.squat} 个/侧 ｜ ` +
+    `${SP_THIRD_NAME[thirdType]} ${thirdTip(st, thirdType)}`;
+}
+function spTierData() { return SP_TIER[$("spTierSel").value] || SP_TIER["10"]; }
+function thirdTip(d, t) {
+  if (t === "pullup" || t === "pushup") return d[t] + " 个";
+  if (t === "bridge") return fmtTime(d.bridge[0] * 60 + d.bridge[1]);
+  return d.side + "″/侧";
+}
+$("tierSel").addEventListener("change", () => { updatePlaceholders(); save(); });
+$("spTierSel").addEventListener("change", () => { updatePlaceholders(); save(); });
+$("fillSpTierBtn").addEventListener("click", () => {
+  const st = spTierData();
+  $("squatL").value = st.squat;
+  $("squatR").value = st.squat;
+  if (thirdType === "pullup" || thirdType === "pushup") {
+    const el = $("thirdNum"); if (el) el.value = st[thirdType];
+  } else if (thirdType === "bridge") {
+    const m = $("thirdMin"), s = $("thirdSec");
+    if (m) m.value = st.bridge[0];
+    if (s) s.value = st.bridge[1];
+  } else {
+    const L = $("sideL"), R = $("sideR");
+    if (L) L.value = st.side;
+    if (R) R.value = st.side;
+  }
+  calc(); save();
+});
+$("fillTierBtn").addEventListener("click", () => {
+  const t = tierData();
+  $("vital").value = t.vital;
+  $("run50").value = t.run50;
+  $("sitreach").value = t.sitreach;
+  $("jump").value = t.jump;
+  $("pullup").value = t.pullup;
+  $("enduMin").value = t.endu[0];
+  $("enduSec").value = t.endu[1];
+  calc(); save();
+});
+
+/* ================= 计算 ================= */
+function calc() {
+  const g = gender;
+  const warnings = [];
+  const failReasons = [];
+
+  /* ① 思政 15 */
+  const kuang = num("kuang") || 0, bing = num("bing") || 0, chidao = num("chidao") || 0;
+  const kaoqin = Math.max(0, 10 - kuang * 3 - bing * 1 - chidao * 0.5);
+  let biaoxian = 0;
+  document.querySelectorAll("[data-bx]").forEach(s => { biaoxian += parseFloat(s.value); });
+  const s1 = round1(kaoqin + biaoxian);
+  if ($("queke13").checked) failReasons.push("缺课达到三分之一及以上");
+
+  /* ② 理论 10 */
+  const theoryRaw = num("theory");
+  const s2 = theoryRaw == null ? 0 : Math.max(0, Math.min(10, theoryRaw));
+
+  /* ③ 体测 30 */
+  const h = num("height"), w = num("weight");
+  let bmiScore = null, bmiVal = null;
+  if (h != null && w != null && h > 0) {
+    bmiVal = w / Math.pow(h / 100, 2);
+    const B = BMI[g];
+    if (bmiVal < B.lo) bmiScore = 80;
+    else if (bmiVal <= B.hi) bmiScore = 100;
+    else if (bmiVal < 28.0) bmiScore = 80;
+    else bmiScore = 60;
+  }
+  const vitalScore = hiScore(HI.vital[g], num("vital"));
+  const r50 = loScore(LO.run50[g], num("run50"));
+  const sitScore = hiScore(HI.sitreach[g], num("sitreach"));
+  const jumpScore = hiScore(HI.jump[g], num("jump"));
+  const strengthScore = hiScore(g === "male" ? HI.pullup : HI.situp, num("pullup"));
+  const enduMin = num("enduMin"), enduSecPart = num("enduSec");
+  const enduSec = (enduMin != null || enduSecPart != null) ? (enduMin || 0) * 60 + (enduSecPart || 0) : null;
+  const enduScore = loScore(LO.endurance[g], enduSec);
+  if (enduSecPart != null && enduSecPart > 59) warnings.push("耐力跑秒数应小于 60 秒，请检查输入");
+
+  // 附加分
+  let bonus = 0;
+  const bonusParts = [];
+  const reps = num("pullup");
+  const repFull = g === "male" ? 19 : 56;
+  if (reps != null && reps > repFull) {
+    const b = Math.min(10, reps - repFull);
+    bonus += b; bonusParts.push((g === "male" ? "引体向上" : "仰卧起坐") + " +" + b);
+  }
+  if (enduSec != null) {
+    const fullMark = LO.endurance[g][0][1];
+    const deficit = fullMark - enduSec;
+    if (deficit > 0) {
+      let b = 0;
+      ENDU_BONUS[g].forEach(t => { if (deficit >= t) b++; });
+      b = Math.min(10, b);
+      if (b > 0) { bonus += b; bonusParts.push("耐力跑 +" + b); }
+    }
+  }
+
+  const parts = [
+    { name: "体重指数 BMI", w: 0.15, score: bmiScore, raw: bmiVal == null ? "—" : bmiVal.toFixed(1) },
+    { name: "肺活量",       w: 0.15, score: vitalScore, raw: nn(num("vital"), "—") },
+    { name: "50 米跑",      w: 0.20, score: r50,      raw: num("run50") == null ? "—" : num("run50").toFixed(1) + "s" },
+    { name: "坐位体前屈",   w: 0.10, score: sitScore,  raw: num("sitreach") == null ? "—" : num("sitreach").toFixed(1) + "cm" },
+    { name: "立定跳远",     w: 0.10, score: jumpScore, raw: num("jump") == null ? "—" : num("jump") + "cm" },
+    { name: g === "male" ? "引体向上" : "一分钟仰卧起坐", w: 0.10, score: strengthScore, raw: nn(reps, "—") },
+    { name: g === "male" ? "1000 米跑" : "800 米跑",      w: 0.20, score: enduScore,    raw: fmtTime(enduSec) }
+  ];
+  let stdSum = 0, hasAll = true, anyFilled = false;
+  parts.forEach((p, i) => {
+    if (p.score == null) hasAll = false;
+    else { stdSum += p.score * WEIGHTS[i]; anyFilled = true; }
+  });
+  const fitStd = anyFilled ? round1(stdSum) : null;
+  const fitTotal = fitStd == null ? null : Math.min(120, round1(fitStd + bonus));
+  const fitCourse = fitTotal == null ? null : round1(Math.min(100, fitTotal) * 0.3);
+  if (fitTotal != null && fitTotal < 60) failReasons.push("身体综合测试 " + fitTotal + " 分（< 60）");
+
+  /* ④ 专项 30 */
+  const spEnduScore = loScore(SP_ENDU, enduSec);
+  const sqL = num("squatL"), sqR = num("squatR");
+  let squatScore = null;
+  if (sqL != null || sqR != null) {
+    squatScore = (sqL == null ? 0 : (hiScore(SP_SQUAT, sqL) || 0)) + (sqR == null ? 0 : (hiScore(SP_SQUAT, sqR) || 0));
+  }
+  const third = readThird();
+  const spDone = [spEnduScore, squatScore, third.score].filter(x => x != null).length;
+  const s4 = round1((spEnduScore || 0) + (squatScore || 0) + (third.score || 0));
+
+  /* ⑤ 课外 15 */
+  const runCount = num("runCount");
+  const base = runCount == null ? null : (runCount >= 40 ? 10 : 0);
+  if (runCount != null && runCount < 40) failReasons.push("有效跑步 " + runCount + " 次（< 40 次，基础分 0）");
+  const mileage = num("mileage");
+  const mileBonus = mileage == null ? null : (hiScore(MILE_BONUS[g], mileage) || 0);
+  const contest = parseFloat($("contest").value) || 0;
+  const extra = Math.min(5, Math.max(mileBonus || 0, contest));
+  const s5 = base == null ? null : round1(base + extra);
+
+  /* 数据完整性提示 */
+  const touched = anyFilled || runCount != null || mileage != null || sqL != null || sqR != null
+    || third.score != null || spEnduScore != null || kuang > 0 || bing > 0 || chidao > 0;
+  if (touched && (spDone < 3 || !hasAll)) warnings.push("未填写完整数据，仅按已填项计算");
+
+  /* 汇总 */
+  const s3 = fitCourse == null ? 0 : fitCourse;
+  const total = round1(s1 + s2 + s3 + s4 + (s5 || 0));
+  const isFail = failReasons.length > 0 || (touched && total < 60);
+
+  /* ===== 渲染 ===== */
+  $("totalScore").textContent = total.toFixed(1);
+  $("rTotal").textContent = total.toFixed(1) + " / 100";
+  const bar = $("totalBar");
+  bar.style.width = Math.max(0, Math.min(100, total)) + "%";
+  bar.style.background = total >= 80 ? "var(--ok)" : total >= 60 ? "var(--warn)" : "var(--bad)";
+
+  const tag = $("gradeTag");
+  if (!touched) { tag.textContent = "未填写"; tag.className = "grade-tag g-fail"; }
+  else if (isFail) { tag.textContent = "不及格"; tag.className = "grade-tag g-fail-red"; }
+  else { const gr = gradeOf(total); tag.textContent = gr.text; tag.className = "grade-tag " + gr.cls; }
+
+  $("r1").textContent = s1.toFixed(1) + " / 15";
+  $("r2").textContent = s2.toFixed(1) + " / 10";
+  $("r3").textContent = fitCourse == null ? "—" : fitCourse.toFixed(1) + " / 30";
+  $("r4").textContent = s4.toFixed(1) + " / 30";
+  $("r5").textContent = s5 == null ? "—" : s5.toFixed(1) + " / 15";
+
+  $("fitDetail").innerHTML = parts.map((p, i) =>
+    `<tr><td>${p.name}（${p.raw}）</td><td>${Math.round(p.w * 100)}%</td>
+     <td class="num ${p.score != null && p.score < 60 ? "low" : ""}">${p.score == null ? "—" : p.score}</td></tr>`).join("");
+  $("fitStd").textContent = fitStd == null ? "—" : fitStd + " 分";
+  $("fitBonus").textContent = bonus ? "+" + bonus + " 分（" + bonusParts.join("，") + "）" : "—";
+  $("fitTotal").textContent = fitTotal == null ? "—" : fitTotal + " 分" + (fitTotal >= 90 ? "（优秀）" : fitTotal >= 80 ? "（良好）" : fitTotal >= 60 ? "（及格）" : "（不及格）");
+  $("fitCourse").textContent = fitCourse == null ? "—" : fitCourse.toFixed(1) + " 分";
+
+  const spRows = [
+    { name: g === "male" ? "1000 米（专项）" : "800 米（专项）", raw: fmtTime(enduSec), score: spEnduScore, cap: 10 },
+    { name: "原地分腿蹲", raw: (sqL == null && sqR == null) ? "—" : `左 ${nn(sqL, "—")} / 右 ${nn(sqR, "—")} 个`, score: squatScore, cap: "10（每侧≤5）" },
+    {
+      name: thirdType === "pullup" ? "斜向引体向上" : thirdType === "pushup" ? "标准俯卧撑" : thirdType === "bridge" ? "俯桥" : "侧桥",
+      raw: third.raw, score: third.score, cap: thirdType === "sidebridge" ? "10（每侧≤5）" : 10
+    }
+  ];
+  $("spDetail").innerHTML = spRows.map(r =>
+    `<tr><td>${r.name}</td><td>${r.raw}</td><td class="num">${r.score == null ? "—" : r.score} / ${r.cap}</td></tr>`).join("")
+    + `<tr><td colspan="2"><b>专项合计</b></td><td class="num"><b>${s4.toFixed(1)} / 30</b></td></tr>`;
+
+  $("runBase").textContent = base == null ? "—" : base + " 分" + (base === 0 ? "（未达 40 次）" : "");
+  $("runExtra").textContent = (mileage == null && contest === 0) ? "—"
+    : `里程 ${mileBonus == null ? "—" : mileBonus} / 竞赛 ${contest} → ${extra.toFixed(1)} 分`;
+
+  $("warnings").innerHTML =
+    (isFail && failReasons.length ? `<div class="warning">⚠ 体育课不及格：${failReasons.join("；")}</div>` : "")
+    + (isFail && failReasons.length === 0 ? `<div class="warning">⚠ 学期总成绩 ${total.toFixed(1)} 分，低于 60 分</div>` : "")
+    + warnings.map(w => `<div class="warning info">${w}</div>`).join("");
+}
+
+/* ================= 保存 / 恢复 / 清空 ================= */
+let restoring = false;   // 恢复过程中禁止回写，避免覆盖已有存档
+function save() {
+  if (restoring) return;
+  try {
+    const data = { gender, thirdType, tier: $("tierSel").value, queke13: $("queke13").checked, vals: {}, bx: [] };
+    document.querySelectorAll("input[id], select[id]").forEach(el => {
+      data.vals[el.id] = el.type === "checkbox" ? el.checked : el.value;
+    });
+    document.querySelectorAll("[data-bx]").forEach(s => data.bx.push(s.value));
+    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+  } catch (e) { /* 隐私模式下忽略 */ }
+}
+function load() {
+  try { return JSON.parse(localStorage.getItem(SAVE_KEY) || "null"); } catch (e) { return null; }
+}
+function restore() {
+  const d = load();
+  if (!d) return;
+  restoring = true;
+  gender = d.gender === "female" ? "female" : "male";
+  thirdType = d.thirdType || (gender === "male" ? "pullup" : "bridge");
+  buildBiaoxian();
+  setGender(gender);
+  if (d.tier) $("tierSel").value = d.tier;
+  $("queke13").checked = !!d.queke13;
+  Object.entries(d.vals || {}).forEach(([id, v]) => {
+    const el = $(id);
+    if (!el || id === "tierSel") return;
+    if (el.type === "checkbox") el.checked = !!v; else el.value = v;
+  });
+  const bxs = document.querySelectorAll("[data-bx]");
+  (d.bx || []).forEach((v, i) => { if (bxs[i]) bxs[i].value = v; });
+  Object.entries(d.vals || {}).forEach(([id, v]) => {
+    const el = $(id);
+    if (el && (id === "thirdNum" || id === "thirdMin" || id === "thirdSec" || id === "sideL" || id === "sideR")) el.value = v;
+  });
+  updatePlaceholders();
+  restoring = false;
+}
+/* ================= 分区重置（只清空对应卡片，不影响其他部分） ================= */
+const clearIds = ids => ids.forEach(id => { const el = $(id); if (el) el.value = ""; });
+const PART_RESET = {
+  // ① 课程思政：考勤次数、缺课标记、课堂表现回到 A
+  "1": () => {
+    clearIds(["kuang", "bing", "chidao"]);
+    $("queke13").checked = false;
+    document.querySelectorAll("[data-bx]").forEach(s => s.value = "1");
+  },
+  // ② 理论考试：恢复默认满分
+  "2": () => { $("theory").value = 10; },
+  // ③ 体测：只清成绩，保留“参考成绩显示”档位选择
+  "3": () => { clearIds(["height", "weight", "vital", "run50", "sitreach", "jump", "pullup", "enduMin", "enduSec"]); },
+  // ④ 专项：清分腿蹲与第三项数值，保留第三项类型选择
+  "4": () => { clearIds(["squatL", "squatR", "thirdNum", "thirdMin", "thirdSec", "sideL", "sideR"]); },
+  // ⑤ 课外：清次数里程、竞赛回到未参加
+  "5": () => { clearIds(["runCount", "mileage"]); $("contest").value = "0"; }
+};
+document.querySelectorAll(".part-reset").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const fn = PART_RESET[btn.dataset.part];
+    if (!fn) return;
+    fn(); calc(); save();
+    const old = btn.textContent;
+    btn.textContent = "已重置";
+    btn.classList.add("done");
+    clearTimeout(btn._t);
+    btn._t = setTimeout(() => { btn.textContent = old; btn.classList.remove("done"); }, 900);
+  });
+});
+
+/* ================= 启动 ================= */
+buildBiaoxian();
+buildThird();
+document.addEventListener("input", () => { calc(); save(); });
+document.addEventListener("change", () => { calc(); save(); });
+restore();
+updatePlaceholders();
+calc();
+window.__PE_OK = true;
+</script>
+<script>
+/* 兜底自检：若主脚本没能执行（语法不被支持 / 在预览器里打开），给出明确提示 */
+(function () {
+  function warn() {
+    if (window.__PE_OK) return;
+    var box = document.createElement("div");
+    box.style.cssText = "position:fixed;left:0;right:0;top:0;z-index:9999;background:#fef2f2;border-bottom:1px solid #fecaca;color:#b91c1c;font:13px/1.6 -apple-system,'PingFang SC',sans-serif;padding:10px 14px;text-align:center";
+    box.textContent = "当前打开方式未能运行本页脚本，按钮、档位和成绩计算都无法使用。请改用系统浏览器（Safari / Chrome / Edge）打开本文件，不要在聊天软件的预览窗口中查看。";
+    if (document.body) document.body.appendChild(box);
+  }
+  if (document.readyState === "complete") setTimeout(warn, 300);
+  else window.addEventListener("load", function () { setTimeout(warn, 300); });
+})();
+</script>
+</body>
+</html>
