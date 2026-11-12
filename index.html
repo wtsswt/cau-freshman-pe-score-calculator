@@ -196,8 +196,10 @@ noscript > div {
 footer.foot {
   display: flex; justify-content: space-between; align-items: center; gap: 12px;
   margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--line);
+  padding-bottom: env(safe-area-inset-bottom);
   font-size: 11px; line-height: 1.7; color: var(--ink-3); flex-wrap: wrap;
 }
+footer.foot .author { color: var(--ink-2); }
 
 @media (max-width: 920px) {
   .result { position: static; }
@@ -545,7 +547,7 @@ footer.foot {
 
   <footer class="foot">
     <span class="ver">本页仅用于自测估算，最终成绩以学校教务处 / 体育教学部核定为准。</span>
-    <span class="author">swt · 由 AI 生成</span>
+    <span class="author">© 2026 swt · AI 辅助生成</span>
   </footer>
 </div>
 
